@@ -13,11 +13,14 @@ public record ConversationResponseDto(
         MessageResponseDto dernierMessage,
         int nombreNonLus
 ) {
-    public static ConversationResponseDto depuis(Conversation c, MessageResponseDto dernierMessage, int nonLus) {
+    // nomAffiche : pour une conversation PRIVEE, c'est le nom de l'AUTRE
+    // participant (calcule cote service) ; pour un GROUPE, le nom stocke.
+    public static ConversationResponseDto depuis(Conversation c, String nomAffiche,
+                                                   MessageResponseDto dernierMessage, int nonLus) {
         return new ConversationResponseDto(
                 c.getId(),
                 c.getType().name(),
-                c.getNom(),
+                nomAffiche,
                 c.getGroupeLieId(),
                 c.getDateCreation(),
                 dernierMessage,

@@ -31,7 +31,7 @@ public class ConversationService {
 
     public List<ConversationResponseDto> listerConversationsDe(Long userId) {
         return conversationRepository.findConversationsDeLUtilisateur(userId).stream()
-                .map(this::versDto)
+                .map(c -> versDto(c, userId))
                 .toList();
     }
 
@@ -47,7 +47,6 @@ public class ConversationService {
         conversation.setCreateur(createur);
         conversation = conversationRepository.save(conversation);
 
-        // Ajoute le createur + tous les participants demandes
         ajouterParticipant(conversation, createur, ConversationParticipant.Role.ADMIN);
         for (Long userId : requete.participantIds()) {
             if (userId.equals(createurId)) continue;
@@ -56,7 +55,7 @@ public class ConversationService {
             ajouterParticipant(conversation, u, ConversationParticipant.Role.MEMBRE);
         }
 
-        return versDto(conversation);
+        return versDto(conversation, createurId);
     }
 
     private void ajouterParticipant(Conversation conversation, User user, ConversationParticipant.Role role) {
@@ -75,13 +74,26 @@ public class ConversationService {
         participant.ifPresent(participantRepository::delete);
     }
 
-    private ConversationResponseDto versDto(Conversation conversation) {
+    // utilisateurCourantId : necessaire pour savoir, dans une conversation
+    // PRIVEE, QUI est "l'autre" personne a afficher comme nom.
+    private ConversationResponseDto versDto(Conversation conversation, Long utilisateurCourantId) {
         Optional<Message> dernier = messageRepository
                 .findByConversationIdOrderByDateEnvoiDesc(conversation.getId(), PageRequest.of(0, 1, Sort.unsorted()))
                 .stream().findFirst();
 
         MessageResponseDto dernierDto = dernier.map(MessageResponseDto::depuis).orElse(null);
+
+        String nomAffiche = conversation.getNom();
+        if (conversation.getType() == Conversation.Type.PRIVEE) {
+            nomAffiche = participantRepository.findByConversationId(conversation.getId()).stream()
+                    .map(ConversationParticipant::getUser)
+                    .filter(u -> !u.getId().equals(utilisateurCourantId))
+                    .findFirst()
+                    .map(u -> u.getPrenom() + " " + u.getNom())
+                    .orElse("Discussion privée");
+        }
+
         // TODO: calculer le vrai nombre de non-lus (comparer dateDernierMessageLu du participant)
-        return ConversationResponseDto.depuis(conversation, dernierDto, 0);
+        return ConversationResponseDto.depuis(conversation, nomAffiche, dernierDto, 0);
     }
 }
