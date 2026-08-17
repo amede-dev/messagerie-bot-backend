@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
 
@@ -16,4 +17,27 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             ORDER BY c.dateCreation DESC
             """)
     List<Conversation> findConversationsDeLUtilisateur(@Param("userId") Long userId);
+
+    // Recherche une conversation PRIVEE (1 a 1) deja existante entre deux
+    // utilisateurs precis, pour eviter de creer un doublon quand on
+    // selectionne plusieurs fois le meme contact dans l'annuaire
+    // (ecran "Nouvelle discussion" cote Flutter).
+    @Query("""
+            SELECT c FROM Conversation c
+            WHERE c.type = :type
+            AND c.archivee = false
+            AND EXISTS (
+                SELECT 1 FROM ConversationParticipant p1
+                WHERE p1.conversation = c AND p1.user.id = :userA
+            )
+            AND EXISTS (
+                SELECT 1 FROM ConversationParticipant p2
+                WHERE p2.conversation = c AND p2.user.id = :userB
+            )
+            """)
+    Optional<Conversation> findConversationPriveeEntre(
+            @Param("type") Conversation.Type type,
+            @Param("userA") Long userA,
+            @Param("userB") Long userB
+    );
 }

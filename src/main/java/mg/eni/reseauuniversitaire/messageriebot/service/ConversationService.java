@@ -40,8 +40,28 @@ public class ConversationService {
         User createur = userRepository.findById(createurId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur createur introuvable"));
 
+        Conversation.Type type = Conversation.Type.valueOf(requete.type());
+
+        // Cas particulier des conversations PRIVEE (1 a 1) : on ne veut
+        // jamais deux discussions differentes entre les deux memes
+        // personnes. Depuis l'annuaire de contacts (ecran "Nouvelle
+        // discussion"), selectionner deux fois la meme personne doit
+        // rouvrir l'unique conversation existante, pas en creer une nouvelle.
+        if (type == Conversation.Type.PRIVEE) {
+            if (requete.participantIds() == null || requete.participantIds().size() != 1) {
+                throw new IllegalArgumentException(
+                        "Une conversation privee doit avoir exactement un autre participant");
+            }
+            Long autreUtilisateurId = requete.participantIds().get(0);
+            Optional<Conversation> existante = conversationRepository
+                    .findConversationPriveeEntre(type, createurId, autreUtilisateurId);
+            if (existante.isPresent()) {
+                return versDto(existante.get(), createurId);
+            }
+        }
+
         Conversation conversation = new Conversation();
-        conversation.setType(Conversation.Type.valueOf(requete.type()));
+        conversation.setType(type);
         conversation.setNom(requete.nom());
         conversation.setGroupeLieId(requete.groupeLieId());
         conversation.setCreateur(createur);
