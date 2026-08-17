@@ -1,11 +1,10 @@
 package mg.eni.reseauuniversitaire.messageriebot.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Message;
 
 import java.time.LocalDateTime;
 
-/// Ce que le frontend Flutter recoit et attend (voir MessageModel.fromJson
-/// cote Flutter) : les noms de champs doivent correspondre exactement.
 public record MessageResponseDto(
         Long id,
         Long conversationId,
@@ -14,7 +13,7 @@ public record MessageResponseDto(
         String contenu,
         String type,
         String statut,
-        LocalDateTime dateEnvoi,
+        @JsonFormat(shape = JsonFormat.Shape.STRING) LocalDateTime dateEnvoi,
         Long messageParentId
 ) {
     public static MessageResponseDto depuis(Message message) {
