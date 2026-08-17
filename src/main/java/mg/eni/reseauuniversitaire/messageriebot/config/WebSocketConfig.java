@@ -18,9 +18,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // SANS .withSockJS() : le client Flutter (stomp_dart_client) utilise
+        // un WebSocket natif brut, pas le protocole SockJS.
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*") // TODO: restreindre en production
-                .withSockJS();
+                .setAllowedOriginPatterns("*"); // TODO: restreindre en production
     }
 
     @Override
