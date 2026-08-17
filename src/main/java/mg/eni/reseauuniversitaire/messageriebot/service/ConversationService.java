@@ -1,8 +1,10 @@
 package mg.eni.reseauuniversitaire.messageriebot.service;
 
+import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationResponseDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageResponseDto;
+import mg.eni.reseauuniversitaire.messageriebot.dto.UserSummaryDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Conversation;
 import mg.eni.reseauuniversitaire.messageriebot.entity.ConversationParticipant;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Message;
@@ -11,7 +13,6 @@ import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationParticipa
 import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.MessageRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -30,31 +31,41 @@ public class ConversationService {
     private final UserRepository userRepository;
 
     public List<ConversationResponseDto> listerConversationsDe(Long userId) {
-        return conversationRepository.findConversationsDeLUtilisateur(userId).stream()
-                .map(c -> versDto(c, userId))
+        return conversationRepository.findConversationsDeLUtilisateur(userId)
+                .stream()
+                .map(conversation -> versDto(conversation, userId))
                 .toList();
     }
 
     @Transactional
-    public ConversationResponseDto creer(ConversationRequestDto requete, Long createurId) {
+    public ConversationResponseDto creer(
+            ConversationRequestDto requete,
+            Long createurId
+    ) {
         User createur = userRepository.findById(createurId)
-                .orElseThrow(() -> new IllegalArgumentException("Utilisateur createur introuvable"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Utilisateur créateur introuvable"));
 
         Conversation.Type type = Conversation.Type.valueOf(requete.type());
 
-        // Cas particulier des conversations PRIVEE (1 a 1) : on ne veut
-        // jamais deux discussions differentes entre les deux memes
-        // personnes. Depuis l'annuaire de contacts (ecran "Nouvelle
-        // discussion"), selectionner deux fois la meme personne doit
-        // rouvrir l'unique conversation existante, pas en creer une nouvelle.
+        // Une seule conversation privée entre les deux mêmes utilisateurs.
         if (type == Conversation.Type.PRIVEE) {
-            if (requete.participantIds() == null || requete.participantIds().size() != 1) {
+            if (requete.participantIds() == null
+                    || requete.participantIds().size() != 1) {
                 throw new IllegalArgumentException(
-                        "Une conversation privee doit avoir exactement un autre participant");
+                        "Une conversation privée doit avoir exactement un autre participant");
             }
+
             Long autreUtilisateurId = requete.participantIds().get(0);
-            Optional<Conversation> existante = conversationRepository
-                    .findConversationPriveeEntre(type, createurId, autreUtilisateurId);
+
+            Optional<Conversation> existante =
+                    conversationRepository.findConversationPriveeEntre(
+                            type,
+                            createurId,
+                            autreUtilisateurId
+                    );
+
             if (existante.isPresent()) {
                 return versDto(existante.get(), createurId);
             }
@@ -65,55 +76,184 @@ public class ConversationService {
         conversation.setNom(requete.nom());
         conversation.setGroupeLieId(requete.groupeLieId());
         conversation.setCreateur(createur);
+
         conversation = conversationRepository.save(conversation);
 
-        ajouterParticipant(conversation, createur, ConversationParticipant.Role.ADMIN);
+        // Le créateur devient administrateur.
+        ajouterParticipant(
+                conversation,
+                createur,
+                ConversationParticipant.Role.ADMIN
+        );
+
         for (Long userId : requete.participantIds()) {
-            if (userId.equals(createurId)) continue;
-            User u = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("Participant introuvable : " + userId));
-            ajouterParticipant(conversation, u, ConversationParticipant.Role.MEMBRE);
+            if (userId.equals(createurId)) {
+                continue;
+            }
+
+            User utilisateur = userRepository.findById(userId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Participant introuvable : " + userId));
+
+            ajouterParticipant(
+                    conversation,
+                    utilisateur,
+                    ConversationParticipant.Role.MEMBRE
+            );
         }
 
         return versDto(conversation, createurId);
     }
 
-    private void ajouterParticipant(Conversation conversation, User user, ConversationParticipant.Role role) {
-        if (participantRepository.existsByConversationIdAndUserId(conversation.getId(), user.getId())) return;
-        ConversationParticipant participant = new ConversationParticipant();
-        participant.setConversation(conversation);
-        participant.setUser(user);
-        participant.setRole(role);
-        participantRepository.save(participant);
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> listerParticipants(
+            Long conversationId,
+            Long utilisateurCourantId
+    ) {
+        verifierMembre(conversationId, utilisateurCourantId);
+
+        return participantRepository.findByConversationId(conversationId)
+                .stream()
+                .map(participant -> {
+                    User utilisateur = participant.getUser();
+
+                    return new UserSummaryDto(
+                            utilisateur.getId(),
+                            utilisateur.getNom(),
+                            utilisateur.getPrenom(),
+                            utilisateur.getEmail()
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional
+    public void ajouterParticipant(
+            Long conversationId,
+            Long nouvelUtilisateurId,
+            Long demandeurId
+    ) {
+        Conversation conversation = conversationRepository
+                .findById(conversationId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Conversation introuvable"));
+
+        if (conversation.getType() != Conversation.Type.GROUPE) {
+            throw new IllegalArgumentException(
+                    "Un participant peut seulement être ajouté à un groupe");
+        }
+
+        ConversationParticipant demandeur =
+                participantRepository.findByConversationIdAndUserId(
+                        conversationId,
+                        demandeurId
+                ).orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Vous ne faites pas partie de ce groupe"));
+
+        if (demandeur.getRole() != ConversationParticipant.Role.ADMIN) {
+            throw new IllegalArgumentException(
+                    "Seul un administrateur peut ajouter des participants");
+        }
+
+        User nouvelUtilisateur = userRepository
+                .findById(nouvelUtilisateurId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Utilisateur introuvable"));
+
+        // Évite les doublons grâce à la vérification dans la méthode privée.
+        ajouterParticipant(
+                conversation,
+                nouvelUtilisateur,
+                ConversationParticipant.Role.MEMBRE
+        );
     }
 
     @Transactional
     public void quitter(Long conversationId, Long userId) {
         Optional<ConversationParticipant> participant =
-                participantRepository.findByConversationIdAndUserId(conversationId, userId);
+                participantRepository.findByConversationIdAndUserId(
+                        conversationId,
+                        userId
+                );
+
         participant.ifPresent(participantRepository::delete);
     }
 
-    // utilisateurCourantId : necessaire pour savoir, dans une conversation
-    // PRIVEE, QUI est "l'autre" personne a afficher comme nom.
-    private ConversationResponseDto versDto(Conversation conversation, Long utilisateurCourantId) {
-        Optional<Message> dernier = messageRepository
-                .findByConversationIdOrderByDateEnvoiDesc(conversation.getId(), PageRequest.of(0, 1, Sort.unsorted()))
-                .stream().findFirst();
+    private ConversationParticipant verifierMembre(
+            Long conversationId,
+            Long utilisateurId
+    ) {
+        return participantRepository
+                .findByConversationIdAndUserId(conversationId, utilisateurId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Vous ne faites pas partie de cette conversation"));
+    }
 
-        MessageResponseDto dernierDto = dernier.map(MessageResponseDto::depuis).orElse(null);
+    private void ajouterParticipant(
+            Conversation conversation,
+            User utilisateur,
+            ConversationParticipant.Role role
+    ) {
+        boolean existe = participantRepository
+                .existsByConversationIdAndUserId(
+                        conversation.getId(),
+                        utilisateur.getId()
+                );
+
+        if (existe) {
+            return;
+        }
+
+        ConversationParticipant participant = new ConversationParticipant();
+        participant.setConversation(conversation);
+        participant.setUser(utilisateur);
+        participant.setRole(role);
+
+        participantRepository.save(participant);
+    }
+
+    private ConversationResponseDto versDto(
+            Conversation conversation,
+            Long utilisateurCourantId
+    ) {
+        Optional<Message> dernierMessage = messageRepository
+                .findByConversationIdOrderByDateEnvoiDesc(
+                        conversation.getId(),
+                        PageRequest.of(0, 1, Sort.unsorted())
+                )
+                .stream()
+                .findFirst();
+
+        MessageResponseDto dernierMessageDto = dernierMessage
+                .map(MessageResponseDto::depuis)
+                .orElse(null);
 
         String nomAffiche = conversation.getNom();
+
+        // Dans une discussion privée, afficher le nom de l'autre participant.
         if (conversation.getType() == Conversation.Type.PRIVEE) {
-            nomAffiche = participantRepository.findByConversationId(conversation.getId()).stream()
+            nomAffiche = participantRepository
+                    .findByConversationId(conversation.getId())
+                    .stream()
                     .map(ConversationParticipant::getUser)
-                    .filter(u -> !u.getId().equals(utilisateurCourantId))
+                    .filter(user ->
+                            !user.getId().equals(utilisateurCourantId))
                     .findFirst()
-                    .map(u -> u.getPrenom() + " " + u.getNom())
+                    .map(user -> user.getPrenom() + " " + user.getNom())
                     .orElse("Discussion privée");
         }
 
-        // TODO: calculer le vrai nombre de non-lus (comparer dateDernierMessageLu du participant)
-        return ConversationResponseDto.depuis(conversation, nomAffiche, dernierDto, 0);
+        // À compléter côté backend si vous gérez le vrai statut de lecture.
+        int nombreNonLus = 0;
+
+        return ConversationResponseDto.depuis(
+                conversation,
+                nomAffiche,
+                dernierMessageDto,
+                nombreNonLus
+        );
     }
 }
