@@ -1,5 +1,7 @@
 package mg.eni.reseauuniversitaire.messageriebot.config;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
@@ -8,11 +10,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.text.Normalizer;
-import java.util.Locale;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -20,48 +18,51 @@ public class AnnuaireDataLoader implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper;
 
     @Override
     public void run(String... args) throws Exception {
-        var fichier = new ClassPathResource("data/listebase.txt");
+        var fichier = new ClassPathResource("data/listebase.json");
 
-        try (var lecteur = new BufferedReader(
-                new InputStreamReader(fichier.getInputStream(), StandardCharsets.UTF_8))) {
+        List<UtilisateurAnnuaire> utilisateurs = objectMapper.readValue(
+                fichier.getInputStream(),
+                new TypeReference<List<UtilisateurAnnuaire>>() {}
+        );
 
-            String ligne;
-            int numero = 1;
-            int ajoutes = 0;
+        int ajoutes = 0;
 
-            while ((ligne = lecteur.readLine()) != null) {
-                ligne = ligne.trim();
-                if (ligne.isEmpty()) continue;
-
-                String[] morceaux = ligne.split("\\s+");
-                String nom = morceaux[0];
-                String prenom = morceaux.length > 1
-                        ? String.join(" ", java.util.Arrays.copyOfRange(morceaux, 1, morceaux.length))
-                        : "Étudiant";
-
-                String email = "etudiant." + numero++ + "@eni.mg";
-
-                if (userRepository.findByEmail(email).isPresent()) {
-                    continue;
-                }
-
-                User utilisateur = new User();
-                utilisateur.setNom(nom);
-                utilisateur.setPrenom(prenom);
-                utilisateur.setEmail(email);
-                utilisateur.setMotDePasse(
-                        passwordEncoder.encode("ChangerMoi2026!")
-                );
-                utilisateur.setRole(User.Role.ETUDIANT);
-
-                userRepository.save(utilisateur);
-                ajoutes++;
+        for (UtilisateurAnnuaire donnees : utilisateurs) {
+            if (userRepository.findByEmail(donnees.email()).isPresent()) {
+                continue;
             }
 
-            System.out.println(">>> Annuaire importé : " + ajoutes + " utilisateurs ajoutés.");
+            User utilisateur = new User();
+            utilisateur.setNom(donnees.nom());
+            utilisateur.setPrenom(donnees.prenom());
+            utilisateur.setEmail(donnees.email());
+            utilisateur.setRole(
+                    donnees.role() == null
+                            ? User.Role.ETUDIANT
+                            : User.Role.valueOf(donnees.role())
+            );
+
+            // Mot de passe temporaire : à changer après la première connexion.
+            utilisateur.setMotDePasse(
+                    passwordEncoder.encode("ChangerMoi2026!")
+            );
+
+            userRepository.save(utilisateur);
+            ajoutes++;
         }
+
+        System.out.println(">>> Annuaire JSON importé : "
+                + ajoutes + " utilisateurs ajoutés.");
     }
+
+    private record UtilisateurAnnuaire(
+            String nom,
+            String prenom,
+            String email,
+            String role
+    ) {}
 }

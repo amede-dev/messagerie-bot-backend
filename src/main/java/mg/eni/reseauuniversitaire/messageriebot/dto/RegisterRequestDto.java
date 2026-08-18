@@ -8,7 +8,6 @@ public record RegisterRequestDto(
         @NotBlank String nom,
         @NotBlank String prenom,
         @NotBlank @Email String email,
-        @NotBlank @Size(min = 6, message = "Le mot de passe doit contenir au moins 6 caracteres")
-        String motDePasse
-) {
-}
+        @NotBlank @Size(min = 6) String motDePasse,
+        @NotBlank String role
+) {}

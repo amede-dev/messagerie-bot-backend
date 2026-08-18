@@ -29,7 +29,7 @@ public class AuthService {
         user.setPrenom(requete.prenom());
         user.setEmail(requete.email());
         user.setMotDePasse(passwordEncoder.encode(requete.motDePasse()));
-        user.setRole(User.Role.ETUDIANT);
+        user.setRole(verifierRoleInscription(requete.role()));
         user = userRepository.save(user);
 
         return construireReponse(user);
@@ -52,4 +52,15 @@ public class AuthService {
                 token, user.getId(), user.getNom(), user.getPrenom(), user.getEmail(), user.getRole().name()
         );
     }
+
+    private User.Role verifierRoleInscription(String role) {
+    String roleNormalise = role.trim().toUpperCase(java.util.Locale.ROOT);
+
+    if (!roleNormalise.equals("ETUDIANT")
+            && !roleNormalise.equals("ENSEIGNANT")) {
+        throw new IllegalArgumentException("Rôle non autorisé.");
+    }
+
+    return User.Role.valueOf(roleNormalise);
+}
 }
