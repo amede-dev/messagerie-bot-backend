@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -216,44 +217,102 @@ public class ConversationService {
     }
 
     private ConversationResponseDto versDto(
-            Conversation conversation,
-            Long utilisateurCourantId
-    ) {
-        Optional<Message> dernierMessage = messageRepository
-                .findByConversationIdOrderByDateEnvoiDesc(
-                        conversation.getId(),
-                        PageRequest.of(0, 1, Sort.unsorted())
-                )
-                .stream()
-                .findFirst();
+        Conversation conversation,
+        Long utilisateurCourantId
+) {
 
-        MessageResponseDto dernierMessageDto = dernierMessage
-                .map(MessageResponseDto::depuis)
-                .orElse(null);
-
-        String nomAffiche = conversation.getNom();
-
-        // Dans une discussion privée, afficher le nom de l'autre participant.
-        if (conversation.getType() == Conversation.Type.PRIVEE) {
-            nomAffiche = participantRepository
-                    .findByConversationId(conversation.getId())
+    Optional<Message> dernierMessage =
+            messageRepository
+                    .findByConversationIdOrderByDateEnvoiDesc(
+                            conversation.getId(),
+                            PageRequest.of(
+                                    0,
+                                    1,
+                                    Sort.unsorted()
+                            )
+                    )
                     .stream()
-                    .map(ConversationParticipant::getUser)
-                    .filter(user ->
-                            !user.getId().equals(utilisateurCourantId))
-                    .findFirst()
-                    .map(user -> user.getPrenom() + " " + user.getNom())
-                    .orElse("Discussion privée");
+                    .findFirst();
+
+    MessageResponseDto dernierMessageDto =
+            dernierMessage
+                    .map(MessageResponseDto::depuis)
+                    .orElse(null);
+
+    String nomAffiche = conversation.getNom();
+
+    // ============================================================
+    // PRÉSENCE + IDENTITÉ DE L'AUTRE UTILISATEUR (discussion privée)
+    // ============================================================
+
+    boolean enLigne = false;
+    LocalDateTime derniereConnexion = null;
+    Long utilisateurId = null; // id de l'AUTRE participant, uniquement pour une conversation PRIVEE
+
+    // ============================================================
+    // DISCUSSION PRIVÉE
+    // ============================================================
+
+    if (conversation.getType() ==
+            Conversation.Type.PRIVEE) {
+
+        Optional<User> autreUtilisateur =
+                participantRepository
+                        .findByConversationId(
+                                conversation.getId()
+                        )
+                        .stream()
+                        .map(ConversationParticipant::getUser)
+                        .filter(user ->
+                                !user.getId()
+                                        .equals(
+                                                utilisateurCourantId
+                                        )
+                        )
+                        .findFirst();
+
+        if (autreUtilisateur.isPresent()) {
+
+            User autre =
+                    autreUtilisateur.get();
+
+            nomAffiche =
+                    autre.getPrenom()
+                            + " "
+                            + autre.getNom();
+
+            enLigne =
+                    autre.isEnLigne();
+
+            derniereConnexion =
+                    autre.getDerniereConnexion();
+
+            utilisateurId =
+                    autre.getId();
         }
-
-        // À compléter côté backend si vous gérez le vrai statut de lecture.
-        int nombreNonLus = 0;
-
-        return ConversationResponseDto.depuis(
-                conversation,
-                nomAffiche,
-                dernierMessageDto,
-                nombreNonLus
-        );
     }
+
+    // ============================================================
+    // NON-LUS
+    // ============================================================
+
+    int nombreNonLus = 0;
+
+    // ============================================================
+    // DTO
+    // ============================================================
+
+    return new ConversationResponseDto(
+            conversation.getId(),
+            conversation.getType().name(),
+            nomAffiche,
+            conversation.getGroupeLieId(),
+            conversation.getDateCreation(),
+            dernierMessageDto,
+            nombreNonLus,
+            utilisateurId,
+            enLigne,
+            derniereConnexion
+    );
+}
 }

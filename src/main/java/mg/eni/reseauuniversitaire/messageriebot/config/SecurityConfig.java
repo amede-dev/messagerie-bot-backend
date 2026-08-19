@@ -1,14 +1,20 @@
 package mg.eni.reseauuniversitaire.messageriebot.config;
 
 import mg.eni.reseauuniversitaire.messageriebot.security.JwtAuthFilter;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+
 import org.springframework.security.config.http.SessionCreationPolicy;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -25,20 +31,50 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         http
-                .csrf(csrf -> csrf.disable()) // API stateless consommee par l'app mobile, pas de formulaire HTML
-                .cors(cors -> {}) // voir CorsConfig
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // Endpoints publics : inscription/connexion
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Handshake WebSocket (le token est verifie separement, voir JwtChannelInterceptor)
-                        .requestMatchers("/ws/**").permitAll()
-                        // Tout le reste necessite un token JWT valide
-                        .anyRequest().authenticated()
+
+                .csrf(csrf -> csrf.disable())
+
+                .cors(cors -> {})
+
+                .sessionManagement(
+                        session ->
+                                session.sessionCreationPolicy(
+                                        SessionCreationPolicy.STATELESS
+                                )
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+                .authorizeHttpRequests(
+                        auth -> auth
+
+                                // Authentification
+                                .requestMatchers(
+                                        "/api/auth/**"
+                                ).permitAll()
+
+                                // Handshake WebSocket
+                                .requestMatchers(
+                                        "/ws/**"
+                                ).permitAll()
+
+                                // Fichiers envoyés
+                                .requestMatchers(
+                                        "/uploads/**"
+                                ).permitAll()
+
+                                // Tout le reste
+                                .anyRequest()
+                                .authenticated()
+                )
+
+                .addFilterBefore(
+                        jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

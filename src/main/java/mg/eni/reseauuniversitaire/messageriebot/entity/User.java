@@ -46,4 +46,13 @@ public class User {
 
     @Column(nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
+
+     // ============================================================
+    // PRÉSENCE
+    // ============================================================
+
+    @Column(nullable = false)
+    private boolean enLigne = false;
+
+    private LocalDateTime derniereConnexion;
 }
