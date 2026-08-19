@@ -47,11 +47,8 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 
-     // ============================================================
-    // PRÉSENCE
-    // ============================================================
-
-    @Column(nullable = false)
+    
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean enLigne = false;
 
     private LocalDateTime derniereConnexion;
