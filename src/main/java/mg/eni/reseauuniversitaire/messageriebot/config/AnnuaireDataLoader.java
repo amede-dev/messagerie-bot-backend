@@ -9,6 +9,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
@@ -20,8 +21,16 @@ public class AnnuaireDataLoader implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
+    @Value("${app.annuaire-data.enabled:false}")
+    private boolean annuaireDataEnabled;
+
     @Override
     public void run(String... args) throws Exception {
+        if (!annuaireDataEnabled) {
+            System.out.println(">>> Import automatique de l'annuaire désactivé.");
+            return;
+        }
+
         var fichier = new ClassPathResource("data/listebase.json");
 
         List<UtilisateurAnnuaire> utilisateurs = objectMapper.readValue(
