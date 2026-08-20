@@ -16,6 +16,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
+
 @Service
 @RequiredArgsConstructor
 public class MessageService {
@@ -56,7 +58,9 @@ public class MessageService {
         message.setContenu(requete.contenu());
         message.setType(
                 requete.type() != null
-                        ? Message.Type.valueOf(requete.type())
+                        ? Message.Type.valueOf(
+                                requete.type().trim().toUpperCase(Locale.ROOT)
+                        )
                         : Message.Type.TEXTE
         );
         message.setMessageParentId(requete.messageParentId());

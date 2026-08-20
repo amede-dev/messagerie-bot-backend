@@ -18,11 +18,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping
 @RequiredArgsConstructor
 public class MessageController {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(MessageController.class);
 
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -47,10 +52,20 @@ public class MessageController {
                 requete
         );
 
-        messagingTemplate.convertAndSend(
-                "/topic/conversation." + message.conversationId(),
-                message
-        );
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/conversation." + message.conversationId(),
+                    message
+            );
+        } catch (Exception diffusionException) {
+            // La diffusion temps réel ne doit pas annuler l'enregistrement
+            // du message ni provoquer un HTTP 500 côté mobile.
+            log.warn(
+                    "Diffusion WebSocket impossible pour le message {}",
+                    message.id(),
+                    diffusionException
+            );
+        }
 
         return message;
     }
