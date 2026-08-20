@@ -9,6 +9,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     Page<Message> findByConversationIdOrderByDateEnvoiDesc(Long conversationId, Pageable pageable);
 
+    void deleteByConversationId(Long conversationId);
+
     long countByConversationIdAndExpediteurIdNotAndStatutNot(
             Long conversationId,
             Long expediteurId,

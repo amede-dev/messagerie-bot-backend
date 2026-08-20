@@ -173,13 +173,28 @@ public class ConversationService {
 
     @Transactional
     public void quitter(Long conversationId, Long userId) {
-        Optional<ConversationParticipant> participant =
-                participantRepository.findByConversationIdAndUserId(
-                        conversationId,
-                        userId
-                );
+        Conversation conversation = conversationRepository
+                .findById(conversationId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Conversation introuvable"));
 
-        participant.ifPresent(participantRepository::delete);
+        ConversationParticipant participant = participantRepository
+                .findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Vous ne faites pas partie de cette conversation"));
+
+        if (conversation.getType() == Conversation.Type.GROUPE) {
+            // Pour un groupe, l'utilisateur quitte uniquement le groupe.
+            participantRepository.delete(participant);
+            return;
+        }
+
+        // Pour une conversation privée, le bouton « Supprimer » supprime
+        // réellement tout l'historique et la conversation en base.
+        messageRepository.deleteByConversationId(conversationId);
+        participantRepository.deleteByConversationId(conversationId);
+        conversationRepository.delete(conversation);
     }
 
     private ConversationParticipant verifierMembre(
