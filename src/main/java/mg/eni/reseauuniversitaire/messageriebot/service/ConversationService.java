@@ -293,9 +293,9 @@ public class ConversationService {
                     autreUtilisateur.get();
 
             nomAffiche =
-                    autre.getPrenom()
+                    autre.getNom()
                             + " "
-                            + autre.getNom();
+                            + autre.getPrenom();
 
             enLigne =
                     autre.isEnLigne();

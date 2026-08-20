@@ -41,11 +41,18 @@ public class MessageController {
             @Valid @RequestBody MessageRequestDto requete,
             @AuthenticationPrincipal User utilisateur
     ) {
-        return messageService.envoyer(
+        MessageResponseDto message = messageService.envoyer(
                 conversationId,
                 utilisateur.getId(),
                 requete
         );
+
+        messagingTemplate.convertAndSend(
+                "/topic/conversation." + message.conversationId(),
+                message
+        );
+
+        return message;
     }
 
     @PutMapping("/api/messages/{id}/status")

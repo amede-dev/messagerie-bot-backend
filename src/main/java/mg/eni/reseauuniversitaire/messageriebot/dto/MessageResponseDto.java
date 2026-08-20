@@ -40,9 +40,9 @@ public record MessageResponseDto(
 
                 message.getExpediteur().getId(),
 
-                message.getExpediteur().getPrenom()
+                message.getExpediteur().getNom()
                         + " "
-                        + message.getExpediteur().getNom(),
+                        + message.getExpediteur().getPrenom(),
 
                 message.getContenu(),
 
