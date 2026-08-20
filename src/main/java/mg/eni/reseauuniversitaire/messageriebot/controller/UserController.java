@@ -1,7 +1,9 @@
 package mg.eni.reseauuniversitaire.messageriebot.controller;
 
 import mg.eni.reseauuniversitaire.messageriebot.dto.UserSummaryDto;
+import mg.eni.reseauuniversitaire.messageriebot.dto.UserProfileDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
+import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +21,22 @@ import java.util.List;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final ConversationRepository conversationRepository;
+
+    @GetMapping("/me/profile")
+    public UserProfileDto profil(@AuthenticationPrincipal User utilisateurConnecte) {
+        return new UserProfileDto(
+                utilisateurConnecte.getId(),
+                utilisateurConnecte.getNom(),
+                utilisateurConnecte.getPrenom(),
+                utilisateurConnecte.getEmail(),
+                utilisateurConnecte.getParcours(),
+                utilisateurConnecte.getNiveau(),
+                utilisateurConnecte.getPhotoUrl(),
+                conversationRepository.compterContactsPrives(utilisateurConnecte.getId()),
+                conversationRepository.compterGroupesDe(utilisateurConnecte.getId())
+        );
+    }
 
     @GetMapping
     public List<UserSummaryDto> lister(@AuthenticationPrincipal User utilisateurConnecte) {

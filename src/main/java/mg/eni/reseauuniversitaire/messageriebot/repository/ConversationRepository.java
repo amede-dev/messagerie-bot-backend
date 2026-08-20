@@ -11,6 +11,26 @@ import java.util.Optional;
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
 
     @Query("""
+            SELECT COUNT(DISTINCT p.user.id) FROM ConversationParticipant p
+            WHERE p.conversation.type = mg.eni.reseauuniversitaire.messageriebot.entity.Conversation$Type.PRIVEE
+            AND p.user.id <> :userId
+            AND EXISTS (
+                SELECT 1 FROM ConversationParticipant moi
+                WHERE moi.conversation = p.conversation AND moi.user.id = :userId
+            )
+            AND p.conversation.archivee = false
+            """)
+    long compterContactsPrives(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT COUNT(DISTINCT c.id) FROM Conversation c
+            JOIN c.participants p
+            WHERE c.type = mg.eni.reseauuniversitaire.messageriebot.entity.Conversation$Type.GROUPE
+            AND p.user.id = :userId AND c.archivee = false
+            """)
+    long compterGroupesDe(@Param("userId") Long userId);
+
+    @Query("""
             SELECT DISTINCT c FROM Conversation c
             JOIN c.participants p
             WHERE p.user.id = :userId AND c.archivee = false
