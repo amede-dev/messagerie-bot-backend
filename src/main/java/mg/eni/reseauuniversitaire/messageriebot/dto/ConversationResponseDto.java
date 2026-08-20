@@ -27,6 +27,8 @@ public record ConversationResponseDto(
 
         Long utilisateurId,
 
+        String photoUrl,
+
         // ==========================================================
         // ÉTAT DE CONNEXION
         // ==========================================================

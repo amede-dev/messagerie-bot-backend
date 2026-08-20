@@ -248,6 +248,7 @@ public class ConversationService {
     boolean enLigne = false;
     LocalDateTime derniereConnexion = null;
     Long utilisateurId = null; // id de l'AUTRE participant, uniquement pour une conversation PRIVEE
+    String photoUrl = null;
 
     // ============================================================
     // DISCUSSION PRIVÉE
@@ -289,6 +290,8 @@ public class ConversationService {
 
             utilisateurId =
                     autre.getId();
+
+            photoUrl = autre.getPhotoUrl();
         }
     }
 
@@ -316,6 +319,7 @@ public class ConversationService {
             dernierMessageDto,
             nombreNonLus,
             utilisateurId,
+            photoUrl,
             enLigne,
             derniereConnexion
     );

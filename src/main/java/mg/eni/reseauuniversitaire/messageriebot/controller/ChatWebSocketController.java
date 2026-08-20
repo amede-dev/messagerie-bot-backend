@@ -117,6 +117,7 @@ public class ChatWebSocketController {
                         + ".typing",
 
                 new TypingNotification(
+                        requete.conversationId(),
                         expediteur.getPrenom()
                 )
         );
@@ -145,6 +146,7 @@ public class ChatWebSocketController {
     }
 
     public record TypingNotification(
+            Long conversationId,
             String utilisateur
     ) {
     }
