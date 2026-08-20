@@ -42,6 +42,14 @@ public class User {
     @Column(nullable = false)
     private Role role = Role.ETUDIANT;
 
+    // Parcours et niveau ENI sélectionnés lors de la création du compte.
+    // Nullable pour permettre la mise à jour des utilisateurs déjà existants.
+    @Column(length = 120)
+    private String parcours;
+
+    @Column(length = 20)
+    private String niveau;
+
     private String photoUrl;
 
     @Column(nullable = false)

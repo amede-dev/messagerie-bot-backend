@@ -9,5 +9,7 @@ public record RegisterRequestDto(
         @NotBlank String prenom,
         @NotBlank @Email String email,
         @NotBlank @Size(min = 6) String motDePasse,
-        @NotBlank String role
+        @NotBlank String role,
+        @NotBlank String parcours,
+        @NotBlank String niveau
 ) {}

@@ -30,6 +30,8 @@ public class AuthService {
         user.setEmail(requete.email());
         user.setMotDePasse(passwordEncoder.encode(requete.motDePasse()));
         user.setRole(verifierRoleInscription(requete.role()));
+        user.setParcours(requete.parcours().trim());
+        user.setNiveau(requete.niveau().trim().toUpperCase(java.util.Locale.ROOT));
         user = userRepository.save(user);
 
         return construireReponse(user);
