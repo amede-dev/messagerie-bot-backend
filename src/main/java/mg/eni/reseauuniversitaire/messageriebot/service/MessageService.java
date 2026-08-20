@@ -5,12 +5,9 @@ import mg.eni.reseauuniversitaire.messageriebot.dto.MessageRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageResponseDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Conversation;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Message;
-import mg.eni.reseauuniversitaire.messageriebot.entity.Notification;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
-import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationParticipantRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.MessageRepository;
-import mg.eni.reseauuniversitaire.messageriebot.repository.NotificationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,8 +23,6 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
-    private final ConversationParticipantRepository participantRepository;
-    private final NotificationRepository notificationRepository;
 
     public Page<MessageResponseDto> historique(Long conversationId, int page) {
         Page<Message> messages = messageRepository
@@ -68,23 +63,6 @@ public class MessageService {
         message.setStatut(Message.Statut.ENVOYE);
 
         message = messageRepository.save(message);
-
-        for (var participant : participantRepository.findByConversationId(conversationId)) {
-            User destinataire = participant.getUser();
-            if (destinataire.getId().equals(expediteurId)) {
-                continue;
-            }
-
-            Notification notification = new Notification();
-            notification.setUser(destinataire);
-            notification.setType("MESSAGE");
-            notification.setContenu(
-                    expediteur.getPrenom() + " " + expediteur.getNom()
-                            + " vous a envoyé un message."
-            );
-            notification.setReferenceId(message.getId());
-            notificationRepository.save(notification);
-        }
 
         return MessageResponseDto.depuis(message);
     }
