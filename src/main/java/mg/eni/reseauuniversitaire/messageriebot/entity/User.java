@@ -52,6 +52,14 @@ public class User {
 
     private String photoUrl;
 
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "photo_data", columnDefinition = "bytea")
+    private byte[] photoData;
+
+    @Column(name = "photo_content_type", length = 100)
+    private String photoContentType;
+
     @Column(nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 

@@ -10,6 +10,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -36,6 +39,31 @@ public class UserController {
                 conversationRepository.compterContactsPrives(utilisateurConnecte.getId()),
                 conversationRepository.compterGroupesDe(utilisateurConnecte.getId())
         );
+    }
+
+    @GetMapping("/{id}/photo")
+    public ResponseEntity<byte[]> photo(@PathVariable Long id) {
+        User utilisateur = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+        if (utilisateur.getPhotoData() == null || utilisateur.getPhotoData().length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        MediaType type;
+        try {
+            type = MediaType.parseMediaType(
+                    utilisateur.getPhotoContentType() == null
+                            ? MediaType.APPLICATION_OCTET_STREAM_VALUE
+                            : utilisateur.getPhotoContentType()
+            );
+        } catch (IllegalArgumentException e) {
+            type = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(type)
+                .body(utilisateur.getPhotoData());
     }
 
     @GetMapping

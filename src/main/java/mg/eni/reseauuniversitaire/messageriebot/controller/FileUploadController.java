@@ -140,10 +140,29 @@ public class FileUploadController {
         }
 
         Map<String, String> resultat = stockerFichier(fichier);
-        utilisateur.setPhotoUrl(resultat.get("url"));
+        utilisateur.setPhotoData(fichier.getBytes());
+        utilisateur.setPhotoContentType(
+                fichier.getContentType() == null
+                        ? "application/octet-stream"
+                        : fichier.getContentType()
+        );
+        utilisateur.setPhotoUrl(
+                ServletUriComponentsBuilder
+                        .fromCurrentContextPath()
+                        .path("/api/users/")
+                        .path(utilisateur.getId().toString())
+                        .path("/photo")
+                        .toUriString()
+        );
         userRepository.save(utilisateur);
 
-        return ResponseEntity.ok(resultat);
+        return ResponseEntity.ok(
+                Map.of(
+                        "url", utilisateur.getPhotoUrl(),
+                        "nom", resultat.get("nom"),
+                        "type", utilisateur.getPhotoContentType()
+                )
+        );
     }
 
     private Map<String, String> stockerFichier(MultipartFile fichier)

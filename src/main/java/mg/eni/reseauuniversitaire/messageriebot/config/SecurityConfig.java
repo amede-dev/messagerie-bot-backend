@@ -63,7 +63,8 @@ public class SecurityConfig {
 
                                 // Fichiers envoyés
                                 .requestMatchers(
-                                        "/uploads/**"
+                                        "/uploads/**",
+                                        "/api/users/*/photo"
                                 ).permitAll()
 
                                 // Tout le reste
