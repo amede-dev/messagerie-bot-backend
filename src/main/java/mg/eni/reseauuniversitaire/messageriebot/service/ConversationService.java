@@ -296,7 +296,12 @@ public class ConversationService {
     // NON-LUS
     // ============================================================
 
-    int nombreNonLus = 0;
+    int nombreNonLus = (int) messageRepository
+            .countByConversationIdAndExpediteurIdNotAndStatutNot(
+                    conversation.getId(),
+                    utilisateurCourantId,
+                    Message.Statut.LU
+            );
 
     // ============================================================
     // DTO

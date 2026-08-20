@@ -8,6 +8,7 @@ import mg.eni.reseauuniversitaire.messageriebot.entity.User;
 import mg.eni.reseauuniversitaire.messageriebot.service.MessageService;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MessageController {
 
     private final MessageService messageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/api/conversations/{conversationId}/messages")
     public Page<MessageResponseDto> historique(
@@ -51,7 +53,11 @@ public class MessageController {
             @PathVariable Long id,
             @RequestBody StatutRequest requete
     ) {
-        messageService.marquerStatut(id, requete.statut());
+        MessageResponseDto message = messageService.marquerStatut(id, requete.statut());
+        messagingTemplate.convertAndSend(
+                "/topic/conversation." + message.conversationId(),
+                message
+        );
     }
 
     @DeleteMapping("/api/messages/{id}")

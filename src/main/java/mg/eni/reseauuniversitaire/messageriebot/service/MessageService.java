@@ -67,13 +67,13 @@ public class MessageService {
     }
 
     @Transactional
-    public void marquerStatut(Long messageId, String statut) {
+    public MessageResponseDto marquerStatut(Long messageId, String statut) {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Message introuvable"));
 
         message.setStatut(Message.Statut.valueOf(statut));
-        messageRepository.save(message);
+        return MessageResponseDto.depuis(messageRepository.save(message));
     }
 
     @Transactional

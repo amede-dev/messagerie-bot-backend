@@ -8,4 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
     Page<Message> findByConversationIdOrderByDateEnvoiDesc(Long conversationId, Pageable pageable);
+
+    long countByConversationIdAndExpediteurIdNotAndStatutNot(
+            Long conversationId,
+            Long expediteurId,
+            Message.Statut statut
+    );
 }
