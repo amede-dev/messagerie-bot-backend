@@ -3,8 +3,10 @@ package mg.eni.reseauuniversitaire.messageriebot.controller;
 import mg.eni.reseauuniversitaire.messageriebot.dto.BotMessageRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.BotResponseDto;
 import mg.eni.reseauuniversitaire.messageriebot.service.BotService;
+import mg.eni.reseauuniversitaire.messageriebot.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,7 +20,10 @@ public class BotController {
     private final BotService botService;
 
     @PostMapping("/message")
-    public BotResponseDto envoyerMessage(@Valid @RequestBody BotMessageRequestDto requete) {
-        return botService.repondre(requete.texte());
+    public BotResponseDto envoyerMessage(
+            @Valid @RequestBody BotMessageRequestDto requete,
+            @AuthenticationPrincipal User utilisateur
+    ) {
+        return botService.repondre(requete.texte(), utilisateur.getId());
     }
 }

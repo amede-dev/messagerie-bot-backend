@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Conversation {
 
-    public enum Type { PRIVEE, GROUPE }
+    public enum Type { PRIVEE }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,9 +29,6 @@ public class Conversation {
     private Type type;
 
     private String nom; // null pour les conversations privees
-
-    /// Reference optionnelle vers un groupe/classe/club du module Gp6-4.
-    private Long groupeLieId;
 
     @ManyToOne
     @JoinColumn(name = "createur_id", nullable = false)

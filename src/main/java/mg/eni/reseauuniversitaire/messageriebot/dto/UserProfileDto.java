@@ -8,6 +8,5 @@ public record UserProfileDto(
         String parcours,
         String niveau,
         String photoUrl,
-        long amis,
-        long groupes
+        long amis
 ) {}

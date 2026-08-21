@@ -6,9 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record ConversationRequestDto(
-        @NotNull String type, // "PRIVEE" ou "GROUPE"
+        @NotNull String type, // "PRIVEE"
         String nom,
-        Long groupeLieId,
         @NotEmpty List<Long> participantIds
 ) {
 }

@@ -3,8 +3,8 @@ package mg.eni.reseauuniversitaire.messageriebot.controller;
 import mg.eni.reseauuniversitaire.messageriebot.dto.UserSummaryDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.UserProfileDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
-import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
+import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +25,6 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final ConversationRepository conversationRepository;
-
     @GetMapping("/me/profile")
     public UserProfileDto profil(@AuthenticationPrincipal User utilisateurConnecte) {
         String photoUrl = utilisateurConnecte.getPhotoData() != null
@@ -40,8 +39,7 @@ public class UserController {
                 utilisateurConnecte.getParcours(),
                 utilisateurConnecte.getNiveau(),
                 photoUrl,
-                conversationRepository.compterContactsPrives(utilisateurConnecte.getId()),
-                conversationRepository.compterGroupesDe(utilisateurConnecte.getId())
+                conversationRepository.compterContactsPrives(utilisateurConnecte.getId())
         );
     }
 

@@ -3,9 +3,7 @@ package mg.eni.reseauuniversitaire.messageriebot.service;
 import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationResponseDto;
-import mg.eni.reseauuniversitaire.messageriebot.dto.GroupDiscoveryDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageResponseDto;
-import mg.eni.reseauuniversitaire.messageriebot.dto.UserSummaryDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Conversation;
 import mg.eni.reseauuniversitaire.messageriebot.entity.ConversationParticipant;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Message;
@@ -35,6 +33,7 @@ public class ConversationService {
     public List<ConversationResponseDto> listerConversationsDe(Long userId) {
         return conversationRepository.findConversationsDeLUtilisateur(userId)
                 .stream()
+                .filter(conversation -> conversation.getType() == Conversation.Type.PRIVEE)
                 .map(conversation -> versDto(conversation, userId))
                 .toList();
     }
@@ -50,6 +49,11 @@ public class ConversationService {
                                 "Utilisateur créateur introuvable"));
 
         Conversation.Type type = Conversation.Type.valueOf(requete.type());
+
+        if (type != Conversation.Type.PRIVEE) {
+            throw new IllegalArgumentException(
+                    "Le module Messagerie gère uniquement les conversations privées");
+        }
 
         // Une seule conversation privée entre les deux mêmes utilisateurs.
         if (type == Conversation.Type.PRIVEE) {
@@ -76,7 +80,6 @@ public class ConversationService {
         Conversation conversation = new Conversation();
         conversation.setType(type);
         conversation.setNom(requete.nom());
-        conversation.setGroupeLieId(requete.groupeLieId());
         conversation.setCreateur(createur);
 
         conversation = conversationRepository.save(conversation);
@@ -108,104 +111,6 @@ public class ConversationService {
         return versDto(conversation, createurId);
     }
 
-    @Transactional(readOnly = true)
-    public List<UserSummaryDto> listerParticipants(
-            Long conversationId,
-            Long utilisateurCourantId
-    ) {
-        verifierMembre(conversationId, utilisateurCourantId);
-
-        return participantRepository.findByConversationId(conversationId)
-                .stream()
-                .map(participant -> {
-                    User utilisateur = participant.getUser();
-
-                    return new UserSummaryDto(
-                            utilisateur.getId(),
-                            utilisateur.getNom(),
-                            utilisateur.getPrenom(),
-                            utilisateur.getEmail()
-                    );
-                })
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<GroupDiscoveryDto> listerGroupesDisponibles(Long utilisateurId) {
-        return conversationRepository.findAll().stream()
-                .filter(conversation -> conversation.getType() == Conversation.Type.GROUPE)
-                .filter(conversation -> !conversation.isArchivee())
-                .filter(conversation -> conversation.getParticipants().stream()
-                        .noneMatch(participant -> participant.getUser().getId().equals(utilisateurId)))
-                .map(conversation -> new GroupDiscoveryDto(
-                        conversation.getId(),
-                        conversation.getNom(),
-                        conversation.getParticipants().size()
-                ))
-                .toList();
-    }
-
-    @Transactional
-    public ConversationResponseDto rejoindreGroupe(Long conversationId, Long utilisateurId) {
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Groupe introuvable"));
-
-        if (conversation.getType() != Conversation.Type.GROUPE || conversation.isArchivee()) {
-            throw new IllegalArgumentException("Ce groupe n'est pas disponible");
-        }
-
-        if (!participantRepository.existsByConversationIdAndUserId(
-                conversationId, utilisateurId)) {
-            User utilisateur = userRepository.findById(utilisateurId)
-                    .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
-            ajouterParticipant(conversation, utilisateur, ConversationParticipant.Role.MEMBRE);
-        }
-
-        return versDto(conversation, utilisateurId);
-    }
-
-    @Transactional
-    public void ajouterParticipant(
-            Long conversationId,
-            Long nouvelUtilisateurId,
-            Long demandeurId
-    ) {
-        Conversation conversation = conversationRepository
-                .findById(conversationId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Conversation introuvable"));
-
-        if (conversation.getType() != Conversation.Type.GROUPE) {
-            throw new IllegalArgumentException(
-                    "Un participant peut seulement être ajouté à un groupe");
-        }
-
-        ConversationParticipant demandeur =
-                participantRepository.findByConversationIdAndUserId(
-                        conversationId,
-                        demandeurId
-                ).orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Vous ne faites pas partie de ce groupe"));
-
-        if (demandeur.getRole() != ConversationParticipant.Role.ADMIN) {
-            throw new IllegalArgumentException(
-                    "Seul un administrateur peut ajouter des participants");
-        }
-
-        User nouvelUtilisateur = userRepository
-                .findById(nouvelUtilisateurId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Utilisateur introuvable"));
-
-        // Évite les doublons grâce à la vérification dans la méthode privée.
-        ajouterParticipant(
-                conversation,
-                nouvelUtilisateur,
-                ConversationParticipant.Role.MEMBRE
-        );
-    }
-
     @Transactional
     public void quitter(Long conversationId, Long userId) {
         Conversation conversation = conversationRepository
@@ -218,12 +123,6 @@ public class ConversationService {
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Vous ne faites pas partie de cette conversation"));
-
-        if (conversation.getType() == Conversation.Type.GROUPE) {
-            // Pour un groupe, l'utilisateur quitte uniquement le groupe.
-            participantRepository.delete(participant);
-            return;
-        }
 
         // Pour une conversation privée, le bouton « Supprimer » supprime
         // réellement tout l'historique et la conversation en base.
@@ -367,7 +266,6 @@ public class ConversationService {
             conversation.getId(),
             conversation.getType().name(),
             nomAffiche,
-            conversation.getGroupeLieId(),
             conversation.getDateCreation(),
             dernierMessageDto,
             nombreNonLus,

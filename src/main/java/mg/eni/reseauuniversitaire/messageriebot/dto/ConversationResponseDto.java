@@ -12,8 +12,6 @@ public record ConversationResponseDto(
 
         String nom,
 
-        Long groupeLieId,
-
         @JsonFormat(shape = JsonFormat.Shape.STRING)
         LocalDateTime dateCreation,
 
