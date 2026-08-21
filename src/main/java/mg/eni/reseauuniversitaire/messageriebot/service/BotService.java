@@ -40,7 +40,7 @@ public class BotService {
     @Value("${gemini.api-key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.model:gemini-2.5-flash}")
+    @Value("${gemini.model:gemini-3.6-flash}")
     private String geminiModel;
 
     public BotResponseDto repondre(String texteUtilisateur, Long utilisateurId) {
