@@ -46,7 +46,10 @@ public record MessageResponseDto(
                         + " "
                         + message.getExpediteur().getPrenom(),
 
-                message.getExpediteur().getPhotoUrl(),
+                message.getExpediteur().getPhotoData() != null
+                        && message.getExpediteur().getPhotoData().length > 0
+                        ? "/api/users/" + message.getExpediteur().getId() + "/photo"
+                        : null,
 
                 message.getContenu(),
 

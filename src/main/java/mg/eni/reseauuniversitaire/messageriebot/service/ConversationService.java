@@ -341,7 +341,10 @@ public class ConversationService {
             utilisateurId =
                     autre.getId();
 
-            photoUrl = autre.getPhotoUrl();
+            photoUrl = autre.getPhotoData() != null
+                    && autre.getPhotoData().length > 0
+                    ? "/api/users/" + autre.getId() + "/photo"
+                    : null;
         }
     }
 

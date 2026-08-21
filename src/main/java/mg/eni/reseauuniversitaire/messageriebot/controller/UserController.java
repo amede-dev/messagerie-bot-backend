@@ -28,6 +28,10 @@ public class UserController {
 
     @GetMapping("/me/profile")
     public UserProfileDto profil(@AuthenticationPrincipal User utilisateurConnecte) {
+        String photoUrl = utilisateurConnecte.getPhotoData() != null
+                && utilisateurConnecte.getPhotoData().length > 0
+                ? "/api/users/" + utilisateurConnecte.getId() + "/photo"
+                : null;
         return new UserProfileDto(
                 utilisateurConnecte.getId(),
                 utilisateurConnecte.getNom(),
@@ -35,7 +39,7 @@ public class UserController {
                 utilisateurConnecte.getEmail(),
                 utilisateurConnecte.getParcours(),
                 utilisateurConnecte.getNiveau(),
-                utilisateurConnecte.getPhotoUrl(),
+                photoUrl,
                 conversationRepository.compterContactsPrives(utilisateurConnecte.getId()),
                 conversationRepository.compterGroupesDe(utilisateurConnecte.getId())
         );

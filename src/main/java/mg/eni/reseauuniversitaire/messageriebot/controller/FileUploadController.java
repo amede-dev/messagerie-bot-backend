@@ -139,7 +139,6 @@ public class FileUploadController {
             );
         }
 
-        Map<String, String> resultat = stockerFichier(fichier);
         utilisateur.setPhotoData(fichier.getBytes());
         utilisateur.setPhotoContentType(
                 fichier.getContentType() == null
@@ -147,19 +146,16 @@ public class FileUploadController {
                         : fichier.getContentType()
         );
         utilisateur.setPhotoUrl(
-                ServletUriComponentsBuilder
-                        .fromCurrentContextPath()
-                        .path("/api/users/")
-                        .path(utilisateur.getId().toString())
-                        .path("/photo")
-                        .toUriString()
+                "/api/users/" + utilisateur.getId() + "/photo"
         );
         userRepository.save(utilisateur);
 
         return ResponseEntity.ok(
                 Map.of(
                         "url", utilisateur.getPhotoUrl(),
-                        "nom", resultat.get("nom"),
+                        "nom", fichier.getOriginalFilename() == null
+                                ? "photo-profil"
+                                : fichier.getOriginalFilename(),
                         "type", utilisateur.getPhotoContentType()
                 )
         );
