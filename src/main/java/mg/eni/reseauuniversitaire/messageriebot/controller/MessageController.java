@@ -105,13 +105,22 @@ public class MessageController {
             @PathVariable Long id,
             @AuthenticationPrincipal User utilisateur
     ) {
-        messageService.supprimerPourTous(id, utilisateur.getId());
+        Long conversationId = messageService.supprimerPourTous(
+                id, utilisateur.getId()
+        );
+        messagingTemplate.convertAndSend(
+                "/topic/conversation." + conversationId + ".deleted",
+                new MessageSuppression(id)
+        );
     }
 
     public record StatutRequest(String statut) {
     }
 
     public record ModificationRequest(@NotBlank String contenu) {
+    }
+
+    public record MessageSuppression(Long messageId) {
     }
 
     private void notifierDestinataires(MessageResponseDto message, Long expediteurId) {

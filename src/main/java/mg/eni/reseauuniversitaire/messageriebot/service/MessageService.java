@@ -106,7 +106,7 @@ public class MessageService {
     }
 
     @Transactional
-    public void supprimerPourTous(Long messageId, Long utilisateurId) {
+    public Long supprimerPourTous(Long messageId, Long utilisateurId) {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Message introuvable"));
@@ -117,6 +117,8 @@ public class MessageService {
             );
         }
 
+        Long conversationId = message.getConversation().getId();
         messageRepository.delete(message);
+        return conversationId;
     }
 }
