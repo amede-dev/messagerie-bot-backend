@@ -93,6 +93,13 @@ public class ChatWebSocketController {
 
                 message
         );
+
+        for (String email : messageService.emailsDestinataires(
+                message.conversationId(), expediteur.getId())) {
+            messagingTemplate.convertAndSendToUser(
+                    email, "/queue/notifications", message
+            );
+        }
     }
 
     // =========================================================================

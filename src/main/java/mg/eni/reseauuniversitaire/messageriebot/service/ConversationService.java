@@ -3,6 +3,7 @@ package mg.eni.reseauuniversitaire.messageriebot.service;
 import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationResponseDto;
+import mg.eni.reseauuniversitaire.messageriebot.dto.GroupDiscoveryDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageResponseDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.UserSummaryDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Conversation;
@@ -127,6 +128,40 @@ public class ConversationService {
                     );
                 })
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupDiscoveryDto> listerGroupesDisponibles(Long utilisateurId) {
+        return conversationRepository.findAll().stream()
+                .filter(conversation -> conversation.getType() == Conversation.Type.GROUPE)
+                .filter(conversation -> !conversation.isArchivee())
+                .filter(conversation -> conversation.getParticipants().stream()
+                        .noneMatch(participant -> participant.getUser().getId().equals(utilisateurId)))
+                .map(conversation -> new GroupDiscoveryDto(
+                        conversation.getId(),
+                        conversation.getNom(),
+                        conversation.getParticipants().size()
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public ConversationResponseDto rejoindreGroupe(Long conversationId, Long utilisateurId) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Groupe introuvable"));
+
+        if (conversation.getType() != Conversation.Type.GROUPE || conversation.isArchivee()) {
+            throw new IllegalArgumentException("Ce groupe n'est pas disponible");
+        }
+
+        if (!participantRepository.existsByConversationIdAndUserId(
+                conversationId, utilisateurId)) {
+            User utilisateur = userRepository.findById(utilisateurId)
+                    .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+            ajouterParticipant(conversation, utilisateur, ConversationParticipant.Role.MEMBRE);
+        }
+
+        return versDto(conversation, utilisateurId);
     }
 
     @Transactional

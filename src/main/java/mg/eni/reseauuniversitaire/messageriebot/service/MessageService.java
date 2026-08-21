@@ -7,6 +7,7 @@ import mg.eni.reseauuniversitaire.messageriebot.entity.Conversation;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Message;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
 import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
+import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationParticipantRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.MessageRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +26,7 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
+    private final ConversationParticipantRepository participantRepository;
     private final UserRepository userRepository;
 
     public Page<MessageResponseDto> historique(Long conversationId, int page) {
@@ -79,6 +82,27 @@ public class MessageService {
 
         message.setStatut(Message.Statut.valueOf(statut));
         return MessageResponseDto.depuis(messageRepository.save(message));
+    }
+
+    @Transactional
+    public MessageResponseDto modifier(Long messageId, Long utilisateurId, String contenu) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("Message introuvable"));
+
+        if (!message.getExpediteur().getId().equals(utilisateurId)) {
+            throw new AccessDeniedException("Vous ne pouvez modifier que vos propres messages");
+        }
+
+        message.setContenu(contenu.trim());
+        return MessageResponseDto.depuis(messageRepository.save(message));
+    }
+
+    public List<String> emailsDestinataires(Long conversationId, Long expediteurId) {
+        return participantRepository.findByConversationId(conversationId).stream()
+                .map(participant -> participant.getUser())
+                .filter(user -> !user.getId().equals(expediteurId))
+                .map(User::getEmail)
+                .toList();
     }
 
     @Transactional

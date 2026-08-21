@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.ConversationResponseDto;
+import mg.eni.reseauuniversitaire.messageriebot.dto.GroupDiscoveryDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.UserSummaryDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
 import mg.eni.reseauuniversitaire.messageriebot.service.ConversationService;
@@ -36,6 +37,21 @@ public class ConversationController {
         return ResponseEntity.ok(
                 conversationService.creer(requete, utilisateur.getId())
         );
+    }
+
+    @GetMapping("/groupes/disponibles")
+    public List<GroupDiscoveryDto> groupesDisponibles(
+            @AuthenticationPrincipal User utilisateur
+    ) {
+        return conversationService.listerGroupesDisponibles(utilisateur.getId());
+    }
+
+    @PostMapping("/{id}/join")
+    public ConversationResponseDto rejoindre(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User utilisateur
+    ) {
+        return conversationService.rejoindreGroupe(id, utilisateur.getId());
     }
 
     @DeleteMapping("/{id}")

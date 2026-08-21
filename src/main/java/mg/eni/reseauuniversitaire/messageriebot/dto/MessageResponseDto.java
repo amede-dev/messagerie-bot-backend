@@ -15,6 +15,8 @@ public record MessageResponseDto(
 
         String expediteurNom,
 
+        String expediteurPhotoUrl,
+
         String contenu,
 
         String type,
@@ -43,6 +45,8 @@ public record MessageResponseDto(
                 message.getExpediteur().getNom()
                         + " "
                         + message.getExpediteur().getPrenom(),
+
+                message.getExpediteur().getPhotoUrl(),
 
                 message.getContenu(),
 

@@ -1,6 +1,7 @@
 package mg.eni.reseauuniversitaire.messageriebot.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageResponseDto;
@@ -57,6 +58,7 @@ public class MessageController {
                     "/topic/conversation." + message.conversationId(),
                     message
             );
+            notifierDestinataires(message, utilisateur.getId());
         } catch (Exception diffusionException) {
             // La diffusion temps réel ne doit pas annuler l'enregistrement
             // du message ni provoquer un HTTP 500 côté mobile.
@@ -67,6 +69,22 @@ public class MessageController {
             );
         }
 
+        return message;
+    }
+
+    @PutMapping("/api/messages/{id}")
+    public MessageResponseDto modifier(
+            @PathVariable Long id,
+            @Valid @RequestBody ModificationRequest requete,
+            @AuthenticationPrincipal User utilisateur
+    ) {
+        MessageResponseDto message = messageService.modifier(
+                id, utilisateur.getId(), requete.contenu()
+        );
+        messagingTemplate.convertAndSend(
+                "/topic/conversation." + message.conversationId(), message
+        );
+        notifierDestinataires(message, utilisateur.getId());
         return message;
     }
 
@@ -91,5 +109,17 @@ public class MessageController {
     }
 
     public record StatutRequest(String statut) {
+    }
+
+    public record ModificationRequest(@NotBlank String contenu) {
+    }
+
+    private void notifierDestinataires(MessageResponseDto message, Long expediteurId) {
+        for (String email : messageService.emailsDestinataires(
+                message.conversationId(), expediteurId)) {
+            messagingTemplate.convertAndSendToUser(
+                    email, "/queue/notifications", message
+            );
+        }
     }
 }

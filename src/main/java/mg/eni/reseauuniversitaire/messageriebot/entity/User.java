@@ -1,6 +1,9 @@
 package mg.eni.reseauuniversitaire.messageriebot.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.security.Principal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +21,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User implements Principal {
 
     public enum Role { ETUDIANT, ENSEIGNANT, ADMIN }
 
@@ -52,9 +55,8 @@ public class User {
 
     private String photoUrl;
 
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
     @Column(name = "photo_data", columnDefinition = "bytea")
+    @JdbcTypeCode(SqlTypes.BINARY)
     private byte[] photoData;
 
     @Column(name = "photo_content_type", length = 100)
@@ -68,4 +70,11 @@ public class User {
     private boolean enLigne = false;
 
     private LocalDateTime derniereConnexion;
+
+    // Utilisé par les destinations STOMP /user/** pour router les messages
+    // vers le bon compte, sans exposer l'identifiant de session.
+    @Override
+    public String getName() {
+        return email;
+    }
 }
