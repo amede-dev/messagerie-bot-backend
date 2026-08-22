@@ -32,6 +32,7 @@ public class BotService {
 
     private final BotIntentRepository botIntentRepository;
     private final BotSessionRepository botSessionRepository;
+    private final PlanningService planningService;
     private final mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
@@ -49,6 +50,19 @@ public class BotService {
         List<Map<String, String>> historique = lireContexte(session);
         historique.add(Map.of("role", "user", "text", texteUtilisateur));
         limiterHistorique(historique);
+
+        // Les horaires et examens publiés sont prioritaires sur Gemini et les
+        // anciennes réponses statiques de demo présentes dans bot_intent.
+        String reponsePlanning = planningService.repondreSiPlanning(texteUtilisateur);
+        if (reponsePlanning != null) {
+            BotResponseDto resultat = new BotResponseDto(
+                    reponsePlanning,
+                    List.of("Planning de cette semaine", "Examens", "Rattrapage"),
+                    false
+            );
+            enregistrerEchange(session, historique, resultat.texte());
+            return resultat;
+        }
 
         // Les réponses spécifiques de l'université restent prioritaires.
         for (BotIntent intent : botIntentRepository.findByActifTrue()) {
