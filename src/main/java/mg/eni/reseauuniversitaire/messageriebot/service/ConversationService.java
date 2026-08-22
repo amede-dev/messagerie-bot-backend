@@ -124,11 +124,10 @@ public class ConversationService {
                         new IllegalArgumentException(
                                 "Vous ne faites pas partie de cette conversation"));
 
-        // Pour une conversation privée, le bouton « Supprimer » supprime
-        // réellement tout l'historique et la conversation en base.
-        messageRepository.deleteByConversationId(conversationId);
-        participantRepository.deleteByConversationId(conversationId);
-        conversationRepository.delete(conversation);
+        // La suppression est propre à l'utilisateur courant. On retire
+        // uniquement sa participation : l'autre participant conserve la
+        // conversation et l'historique en base.
+        participantRepository.delete(participant);
     }
 
     private ConversationParticipant verifierMembre(

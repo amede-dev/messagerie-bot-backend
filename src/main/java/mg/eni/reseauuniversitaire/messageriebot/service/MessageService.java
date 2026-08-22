@@ -29,7 +29,12 @@ public class MessageService {
     private final ConversationParticipantRepository participantRepository;
     private final UserRepository userRepository;
 
-    public Page<MessageResponseDto> historique(Long conversationId, int page) {
+    public Page<MessageResponseDto> historique(
+            Long conversationId,
+            Long utilisateurId,
+            int page
+    ) {
+        verifierMembre(conversationId, utilisateurId);
         Page<Message> messages = messageRepository
                 .findByConversationIdOrderByDateEnvoiDesc(
                         conversationId,
@@ -49,6 +54,8 @@ public class MessageService {
                 .findById(conversationId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Conversation introuvable"));
+
+        verifierMembre(conversationId, expediteurId);
 
         User expediteur = userRepository
                 .findById(expediteurId)
@@ -103,6 +110,16 @@ public class MessageService {
                 .filter(user -> !user.getId().equals(expediteurId))
                 .map(User::getEmail)
                 .toList();
+    }
+
+    private void verifierMembre(Long conversationId, Long utilisateurId) {
+        if (!participantRepository.existsByConversationIdAndUserId(
+                conversationId, utilisateurId
+        )) {
+            throw new AccessDeniedException(
+                    "Vous ne faites pas partie de cette conversation"
+            );
+        }
     }
 
     @Transactional

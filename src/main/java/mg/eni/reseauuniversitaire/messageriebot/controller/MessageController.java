@@ -36,9 +36,12 @@ public class MessageController {
     @GetMapping("/api/conversations/{conversationId}/messages")
     public Page<MessageResponseDto> historique(
             @PathVariable Long conversationId,
-            @RequestParam(defaultValue = "0") int page
+            @RequestParam(defaultValue = "0") int page,
+            @AuthenticationPrincipal User utilisateur
     ) {
-        return messageService.historique(conversationId, page);
+        return messageService.historique(
+                conversationId, utilisateur.getId(), page
+        );
     }
 
     @PostMapping("/api/conversations/{conversationId}/messages")
