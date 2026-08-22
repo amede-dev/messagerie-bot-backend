@@ -39,17 +39,12 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             WHERE c.type = :type
             AND c.archivee = false
             AND EXISTS (
-                SELECT 1 FROM ConversationParticipant p1
-                WHERE p1.conversation = c AND p1.user.id = :userA
-            )
-            AND EXISTS (
                 SELECT 1 FROM ConversationParticipant p2
                 WHERE p2.conversation = c AND p2.user.id = :userB
             )
             """)
     Optional<Conversation> findConversationPriveeEntre(
             @Param("type") Conversation.Type type,
-            @Param("userA") Long userA,
             @Param("userB") Long userB
     );
 }

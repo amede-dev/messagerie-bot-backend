@@ -68,12 +68,19 @@ public class ConversationService {
             Optional<Conversation> existante =
                     conversationRepository.findConversationPriveeEntre(
                             type,
-                            createurId,
                             autreUtilisateurId
                     );
 
             if (existante.isPresent()) {
-                return versDto(existante.get(), createurId);
+                Conversation conversationExistante = existante.get();
+                // Si le créateur avait supprimé la discussion de son compte,
+                // il la réintègre au lieu de créer un doublon.
+                ajouterParticipant(
+                        conversationExistante,
+                        createur,
+                        ConversationParticipant.Role.MEMBRE
+                );
+                return versDto(conversationExistante, createurId);
             }
         }
 
@@ -128,6 +135,16 @@ public class ConversationService {
         // uniquement sa participation : l'autre participant conserve la
         // conversation et l'historique en base.
         participantRepository.delete(participant);
+        participantRepository.flush();
+
+        // La conversation devient définitivement supprimable uniquement
+        // lorsque le dernier participant l'a également retirée de son compte.
+        // Ainsi, le premier utilisateur ne voit plus ses messages, tandis que
+        // l'autre conserve encore son historique.
+        if (participantRepository.findByConversationId(conversationId).isEmpty()) {
+            messageRepository.deleteByConversationId(conversationId);
+            conversationRepository.delete(conversation);
+        }
     }
 
     private ConversationParticipant verifierMembre(
