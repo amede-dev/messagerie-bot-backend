@@ -112,6 +112,7 @@ public class PlanningService {
     private String extraireFiliere(String texte) {
         if (texte.contains("info") || texte.contains("informatique")) return "INFO";
         if (texte.contains("gb") || texte.contains("gestion")) return "GB";
+        if (texte.contains("ia") || texte.contains("intelligence artificielle")) return "IA";
         return null;
     }
 
