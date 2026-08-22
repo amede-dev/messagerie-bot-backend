@@ -178,10 +178,15 @@ public class FileUploadController {
                 throw new IOException("Téléchargement Supabase interrompu", exception);
             }
             if (response.statusCode() != 200) {
-                return ResponseEntity.status(response.statusCode()).build();
+                log.warn("Objet Supabase introuvable ou inaccessible: nom='{}', HTTP={}, réponse={}",
+                        nom, response.statusCode(), response.body());
+                // L'objet n'existe pas dans le bucket. Ne pas exposer le code
+                // 400 de Supabase à l'application mobile : c'est un fichier
+                // absent, donc un 404 compréhensible côté client.
+                return ResponseEntity.notFound().build();
             }
             contenu = response.body();
-            type = Files.probeContentType(Paths.get(nom));
+            type = typeMime(nom);
         } else {
             Path fichier = uploadDirectory.resolve(nom).normalize();
             if (!fichier.startsWith(uploadDirectory) || !Files.isRegularFile(fichier)) {
@@ -252,6 +257,35 @@ public class FileUploadController {
             Thread.currentThread().interrupt();
             throw new IOException("Upload Supabase interrompu", exception);
         }
+    }
+
+    private String typeMime(String nom) {
+        String extension = "";
+        int position = nom.lastIndexOf('.');
+        if (position >= 0) {
+            extension = nom.substring(position + 1).toLowerCase();
+        }
+
+        return switch (extension) {
+            case "pdf" -> "application/pdf";
+            case "doc" -> "application/msword";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "xls" -> "application/vnd.ms-excel";
+            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "webp" -> "image/webp";
+            case "gif" -> "image/gif";
+            case "m4a" -> "audio/mp4";
+            case "mp3" -> "audio/mpeg";
+            case "wav" -> "audio/wav";
+            case "aac" -> "audio/aac";
+            case "ogg" -> "audio/ogg";
+            case "mp4" -> "video/mp4";
+            case "mov" -> "video/quicktime";
+            case "webm" -> "video/webm";
+            default -> "application/octet-stream";
+        };
     }
 
     private void stockerLocalement(String nom, byte[] contenu) throws IOException {
