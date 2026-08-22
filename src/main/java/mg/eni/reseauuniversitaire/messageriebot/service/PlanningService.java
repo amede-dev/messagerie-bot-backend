@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -63,6 +64,19 @@ public class PlanningService {
         LocalDate aujourdHui = LocalDate.now();
         LocalDate debut = debutPeriode(texte, aujourdHui);
         LocalDate fin = finPeriode(texte, debut);
+
+        // Sans date explicite, une question générale sur le planning doit
+        // retourner les prochaines échéances publiées, et non uniquement
+        // celles du jour courant.
+        if (!contientPeriodeExplicite(texte)) {
+            if (texte.contains("passe") || texte.contains("historique")) {
+                debut = aujourdHui.minusYears(1);
+                fin = aujourdHui;
+            } else {
+                debut = aujourdHui;
+                fin = aujourdHui.plusYears(1);
+            }
+        }
         List<Planning> resultats = planningRepository.rechercherPublies(
                 filiere, niveau, Planning.Statut.PUBLIE, debut, fin
         );
@@ -113,7 +127,20 @@ public class PlanningService {
     }
 
     private LocalDate finPeriode(String texte, LocalDate debut) {
-        return texte.contains("semaine") ? debut.plusDays(6) : debut;
+        if (texte.contains("semaine")) {
+            return debut.with(DayOfWeek.MONDAY).plusDays(6);
+        }
+        return debut;
+    }
+
+    private boolean contientPeriodeExplicite(String texte) {
+        return texte.matches(".*\\b\\d{2}/\\d{2}/\\d{4}\\b.*")
+                || texte.contains("demain")
+                || texte.contains("hier")
+                || texte.contains("aujourd")
+                || texte.contains("semaine")
+                || texte.contains("passe")
+                || texte.contains("historique");
     }
 
     private String normaliser(String valeur) {
