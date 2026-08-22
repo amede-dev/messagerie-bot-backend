@@ -20,7 +20,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PlanningService {
 
-    private static final Pattern NIVEAU = Pattern.compile("\\bL[1-5]\\b", Pattern.CASE_INSENSITIVE);
+    // L1-L3 pour les licences et M1-M2 pour les masters.
+    private static final Pattern NIVEAU = Pattern.compile("\\b[LM][1-5]\\b", Pattern.CASE_INSENSITIVE);
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final PlanningRepository planningRepository;
