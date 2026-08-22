@@ -19,10 +19,14 @@ import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/files")
 public class FileUploadController {
+
+    private static final Logger log = LoggerFactory.getLogger(FileUploadController.class);
 
     private final Path uploadDirectory;
     private final UserRepository userRepository;
@@ -35,8 +39,8 @@ public class FileUploadController {
             @Value("${app.upload-dir:uploads}") String uploadDir,
             UserRepository userRepository,
             @Value("${SUPABASE_URL:}") String supabaseUrl,
-            @Value("${SUPABASE_SERVICE_ROLE_KEY:}") String supabaseServiceRoleKey,
-            @Value("${SUPABASE_STORAGE_BUCKET:message-files}") String supabaseStorageBucket
+            @Value("${SUPABASE_SERVICE_ROLE_KEY:${SUPABASE_SERVICE_ROLE:${SUPABASE_KEY:}}}") String supabaseServiceRoleKey,
+            @Value("${SUPABASE_STORAGE_BUCKET:${SUPABASE_BUCKET:message-files}}") String supabaseStorageBucket
     ) {
         this.userRepository = userRepository;
         this.supabaseUrl = supabaseUrl == null ? "" : supabaseUrl.trim();
@@ -57,6 +61,16 @@ public class FileUploadController {
             throw new IllegalStateException(
                     "Impossible de créer le dossier uploads",
                     e
+            );
+        }
+
+        if (stockageSupabaseActif()) {
+            log.info("Stockage des pièces jointes activé: bucket Supabase '{}'", supabaseStorageBucket);
+        } else {
+            log.warn(
+                    "Supabase Storage est inactif: les pièces jointes seront écrites dans '{}'. "
+                            + "Sur Render, configurez SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.",
+                    uploadDirectory
             );
         }
     }
@@ -114,6 +128,9 @@ public class FileUploadController {
         } else {
             stockerLocalement(nomFichier, contenu);
         }
+
+        log.info("Pièce jointe enregistrée: nom='{}', stockage='{}'", nomFichier,
+                stockageSupabaseActif() ? "supabase/" + supabaseStorageBucket : uploadDirectory);
 
         String url =
                 ServletUriComponentsBuilder
