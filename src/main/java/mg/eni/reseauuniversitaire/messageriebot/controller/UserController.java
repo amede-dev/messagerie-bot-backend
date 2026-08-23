@@ -72,7 +72,16 @@ public class UserController {
     public List<UserSummaryDto> lister(@AuthenticationPrincipal User utilisateurConnecte) {
         return userRepository.findAll().stream()
                 .filter(u -> !u.getId().equals(utilisateurConnecte.getId()))
-                .map(u -> new UserSummaryDto(u.getId(), u.getNom(), u.getPrenom(), u.getEmail()))
+                .map(u -> new UserSummaryDto(
+                        u.getId(),
+                        u.getNom(),
+                        u.getPrenom(),
+                        u.getEmail(),
+                        u.getPhotoData() != null && u.getPhotoData().length > 0
+                                ? "/api/users/" + u.getId() + "/photo"
+                                : null,
+                        u.isEnLigne()
+                ))
                 .toList();
     }
 }
