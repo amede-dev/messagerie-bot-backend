@@ -4,11 +4,14 @@ import lombok.RequiredArgsConstructor;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageRequestDto;
 import mg.eni.reseauuniversitaire.messageriebot.dto.MessageResponseDto;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Conversation;
+import mg.eni.reseauuniversitaire.messageriebot.entity.ConversationParticipant;
 import mg.eni.reseauuniversitaire.messageriebot.entity.Message;
+import mg.eni.reseauuniversitaire.messageriebot.entity.Notification;
 import mg.eni.reseauuniversitaire.messageriebot.entity.User;
 import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.ConversationParticipantRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.MessageRepository;
+import mg.eni.reseauuniversitaire.messageriebot.repository.NotificationRepository;
 import mg.eni.reseauuniversitaire.messageriebot.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,8 +20,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class MessageService {
     private final ConversationRepository conversationRepository;
     private final ConversationParticipantRepository participantRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
     public Page<MessageResponseDto> historique(
             Long conversationId,
@@ -77,8 +81,37 @@ public class MessageService {
         message.setStatut(Message.Statut.ENVOYE);
 
         message = messageRepository.save(message);
+        creerNotificationsPourDestinataires(message, expediteur);
 
         return MessageResponseDto.depuis(message);
+    }
+
+    private void creerNotificationsPourDestinataires(
+            Message message,
+            User expediteur
+    ) {
+        final String contenu = expediteur.getNom()
+                + " "
+                + expediteur.getPrenom()
+                + " vous a envoyé un message";
+
+        final List<Notification> notifications = participantRepository
+                .findByConversationId(message.getConversation().getId())
+                .stream()
+                .map(ConversationParticipant::getUser)
+                .filter(destinataire -> !destinataire.getId().equals(expediteur.getId()))
+                .map(destinataire -> {
+                    Notification notification = new Notification();
+                    notification.setUser(destinataire);
+                    notification.setType("MESSAGE");
+                    notification.setContenu(contenu);
+                    notification.setLu(false);
+                    notification.setReferenceId(message.getId());
+                    return notification;
+                })
+                .toList();
+
+        notificationRepository.saveAll(notifications);
     }
 
     @Transactional
