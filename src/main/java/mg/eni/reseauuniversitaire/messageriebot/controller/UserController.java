@@ -16,8 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-// Liste minimale des utilisateurs, pour choisir des participants a une
-// conversation. En attendant le vrai annuaire du module Gp6-4.
+// Liste minimale des utilisateurs, pour choisir des participants a une conversation.
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
