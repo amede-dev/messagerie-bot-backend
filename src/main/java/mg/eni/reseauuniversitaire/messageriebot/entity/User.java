@@ -11,10 +11,6 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-// Utilisateur de la plateforme. Dans le projet final du Groupe 6, cette
-// entite sera probablement geree par le module d'authentification global
-// -- elle est incluse ici pour que le module Bot/Messagerie soit
-
 @Entity
 @Table(name = "app_user")
 @Getter
@@ -45,8 +41,7 @@ public class User implements Principal {
     @Column(nullable = false)
     private Role role = Role.ETUDIANT;
 
-    // Parcours et niveau ENI sélectionnés lors de la création du compte.
-    // Nullable pour permettre la mise à jour des utilisateurs déjà existants.
+    // Parcours et niveau ENI sélectionnés lors de la création du compte
     @Column(length = 120)
     private String parcours;
 
@@ -71,8 +66,7 @@ public class User implements Principal {
 
     private LocalDateTime derniereConnexion;
 
-    // Utilisé par les destinations STOMP /user/** pour router les messages
-    // vers le bon compte, sans exposer l'identifiant de session.
+    // Utilisé par les destinations STOMP /user/** pour router les messages vers le bon compte
     @Override
     public String getName() {
         return email;
