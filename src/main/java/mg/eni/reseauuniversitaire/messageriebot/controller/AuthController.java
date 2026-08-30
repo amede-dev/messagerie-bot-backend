@@ -11,8 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/// Ces deux endpoints sont les SEULS accessibles sans token JWT
-/// (voir SecurityConfig : "/api/auth/**" est en permitAll()).
+// Ces deux endpoints sont les SEULS accessibles sans token JWT
+// (voir SecurityConfig : "/api/auth/**" est en permitAll()).
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
