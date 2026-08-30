@@ -30,10 +30,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             """)
     List<Conversation> findConversationsDeLUtilisateur(@Param("userId") Long userId);
 
-    // Recherche une conversation PRIVEE (1 a 1) deja existante entre deux
-    // utilisateurs precis, pour eviter de creer un doublon quand on
-    // selectionne plusieurs fois le meme contact dans l'annuaire
-    // (ecran "Nouvelle discussion" cote Flutter).
+    // Recherche une conversation PRIVEE deja existante entre deux utilisateurs precis
     @Query("""
             SELECT c FROM Conversation c
             WHERE c.type = :type
