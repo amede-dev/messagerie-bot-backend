@@ -31,7 +31,7 @@ public class BotIntent {
 
     private String actionAssociee;
 
-    /// Suggestions de reponse rapide (chips) affichees sous la reponse du bot.
+    // Suggestions de reponse rapide (chips) affichees sous la reponse du bot.
     @ElementCollection
     @CollectionTable(name = "bot_intent_suggestions", joinColumns = @JoinColumn(name = "bot_intent_id"))
     @Column(name = "suggestion")
