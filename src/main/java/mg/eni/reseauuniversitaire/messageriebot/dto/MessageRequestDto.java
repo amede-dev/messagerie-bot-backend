@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record MessageRequestDto(
         @NotBlank String contenu,
-        String type, // TEXTE / IMAGE / DOCUMENT -- optionnel, defaut TEXTE
+        String type, // TEXTE / IMAGE / DOCUMENT ...
         Long messageParentId
 ) {
 }
