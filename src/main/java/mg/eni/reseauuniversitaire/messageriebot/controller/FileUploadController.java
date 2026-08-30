@@ -333,43 +333,4 @@ public class FileUploadController {
         );
     }
 
-    private Map<String, String> stockerFichier(MultipartFile fichier)
-            throws IOException {
-        String nomOriginal = fichier.getOriginalFilename();
-        String extension = "";
-
-        if (nomOriginal != null) {
-            int position = nomOriginal.lastIndexOf('.');
-            if (position >= 0) {
-                extension = nomOriginal.substring(position).toLowerCase();
-            }
-        }
-
-        String nomFichier = UUID.randomUUID() + extension;
-        Path destination = uploadDirectory.resolve(nomFichier).normalize();
-
-        if (!destination.startsWith(uploadDirectory)) {
-            throw new IOException("Chemin de fichier invalide.");
-        }
-
-        Files.copy(
-                fichier.getInputStream(),
-                destination,
-                StandardCopyOption.REPLACE_EXISTING
-        );
-
-        String url = ServletUriComponentsBuilder
-                .fromCurrentContextPath()
-                .path("/uploads/")
-                .path(nomFichier)
-                .toUriString();
-
-        return Map.of(
-                "url", url,
-                "nom", nomOriginal == null ? nomFichier : nomOriginal,
-                "type", fichier.getContentType() == null
-                        ? "application/octet-stream"
-                        : fichier.getContentType()
-        );
-    }
 }
