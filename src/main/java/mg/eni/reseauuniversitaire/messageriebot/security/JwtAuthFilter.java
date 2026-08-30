@@ -7,7 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,9 +18,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-/// Intercepte chaque requete HTTP, lit le header "Authorization: Bearer ...",
-/// valide le token JWT et place l'utilisateur authentifie dans le contexte
-/// Spring Security pour le reste de la requete.
+// Intercepte chaque requete HTTP, lit le header "Authorization: Bearer ...",
+/// valide le token JWT
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
