@@ -125,22 +125,17 @@ public class ConversationService {
                 .orElseThrow(() ->
                         new IllegalArgumentException("Conversation introuvable"));
 
-        ConversationParticipant participant = participantRepository
-                .findByConversationIdAndUserId(conversationId, userId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Vous ne faites pas partie de cette conversation"));
+        ConversationParticipant participant = verifierMembre(
+                conversationId,
+                userId
+        );
 
-        // La suppression est propre à l'utilisateur courant. On retire
-        // uniquement sa participation : l'autre participant conserve la
-        // conversation et l'historique en base.
+        // La suppression est propre à l'utilisateur courant.
         participantRepository.delete(participant);
         participantRepository.flush();
 
         // La conversation devient définitivement supprimable uniquement
         // lorsque le dernier participant l'a également retirée de son compte.
-        // Ainsi, le premier utilisateur ne voit plus ses messages, tandis que
-        // l'autre conserve encore son historique.
         if (participantRepository.findByConversationId(conversationId).isEmpty()) {
             messageRepository.deleteByConversationId(conversationId);
             conversationRepository.delete(conversation);
