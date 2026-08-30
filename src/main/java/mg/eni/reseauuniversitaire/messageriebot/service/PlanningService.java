@@ -66,9 +66,6 @@ public class PlanningService {
         LocalDate debut = debutPeriode(texte, aujourdHui);
         LocalDate fin = finPeriode(texte, debut);
 
-        // Sans date explicite, une question générale sur le planning doit
-        // retourner les prochaines échéances publiées, et non uniquement
-        // celles du jour courant.
         if (!contientPeriodeExplicite(texte)) {
             if (texte.contains("passe") || texte.contains("historique")) {
                 debut = aujourdHui.minusYears(1);
